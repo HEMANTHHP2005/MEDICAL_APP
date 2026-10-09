@@ -1,0 +1,6 @@
+{
+  "name": "MediHome - Family Medicine Register",
+  "description": "Family medicine timing, dosage schedule and inventory stock register with refill planning and audit history.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
