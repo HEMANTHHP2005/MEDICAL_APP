@@ -91,8 +91,8 @@ describe('MediHome Input Validation & Safety Constraints', () => {
       dateOfBirth: '2099-01-01', // Future date
       allergies: [],
       emergencyContact: {
-        name: '',
-        phone: '',
+        name: 'X', // Too short
+        phone: '12', // Too short
         relationship: ''
       },
       avatarColor: '#0284c7'

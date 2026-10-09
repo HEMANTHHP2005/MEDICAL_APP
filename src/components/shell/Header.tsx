@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pill, Plus, UserCheck } from 'lucide-react';
+import { Pill, Plus, UserPlus, UserCheck } from 'lucide-react';
 import { useMediHome } from '../../context/MediHomeContext';
 
 export type NavigationTab = 
@@ -15,14 +15,16 @@ interface HeaderProps {
   currentTab: NavigationTab;
   onSelectTab: (tab: NavigationTab) => void;
   onOpenMedicineModal: () => void;
+  onOpenFamilyModal: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   currentTab,
   onSelectTab,
-  onOpenMedicineModal
+  onOpenMedicineModal,
+  onOpenFamilyModal
 }) => {
-  const { familyMembers, activeCaregiver, setActiveCaregiver } = useMediHome();
+  const { familyMembers, activeCaregiver, setActiveCaregiver, isDemoMode, startFreshHousehold, loadDemoData } = useMediHome();
 
   const navLinks: { id: NavigationTab; label: string }[] = [
     { id: 'dashboard', label: 'Dashboard' },
@@ -75,35 +77,47 @@ export const Header: React.FC<HeaderProps> = ({
             })}
           </nav>
 
-          {/* Zone 3: Caregiver Switcher & Primary Action */}
-          <div className="flex items-center gap-3 shrink-0">
+          {/* Zone 3: Caregiver Switcher & Primary Actions */}
+          <div className="flex items-center gap-2.5 shrink-0">
             {/* Active Caregiver Context */}
-            <div className="hidden sm:flex items-center gap-2 text-xs text-slate-600 bg-slate-50 border border-slate-200/80 rounded-lg px-2.5 py-1.5">
-              <UserCheck className="w-3.5 h-3.5 text-teal-600 shrink-0" />
-              <label htmlFor="caregiver-select" className="sr-only">Active Caregiver</label>
-              <select
-                id="caregiver-select"
-                value={activeCaregiver}
-                onChange={(e) => setActiveCaregiver(e.target.value)}
-                className="bg-transparent text-xs font-medium text-slate-800 focus:outline-none cursor-pointer"
-              >
-                {familyMembers.map((m) => (
-                  <option key={m.id} value={`${m.fullName} (${m.relationship})`}>
-                    {m.fullName} ({m.relationship})
-                  </option>
-                ))}
-                <option value="Visiting Nurse / Health Aide">Visiting Nurse / Health Aide</option>
-              </select>
-            </div>
+            {familyMembers.length > 0 && (
+              <div className="hidden sm:flex items-center gap-1.5 text-xs text-slate-600 bg-slate-50 border border-slate-200/80 rounded-lg px-2.5 py-1.5">
+                <UserCheck className="w-3.5 h-3.5 text-teal-600 shrink-0" />
+                <label htmlFor="caregiver-select" className="sr-only">Active Caregiver</label>
+                <select
+                  id="caregiver-select"
+                  value={activeCaregiver}
+                  onChange={(e) => setActiveCaregiver(e.target.value)}
+                  className="bg-transparent text-xs font-medium text-slate-800 focus:outline-none cursor-pointer max-w-[130px] truncate"
+                >
+                  {familyMembers.map((m) => (
+                    <option key={m.id} value={`${m.fullName} (${m.relationship})`}>
+                      {m.fullName} ({m.relationship})
+                    </option>
+                  ))}
+                  <option value="Visiting Nurse / Health Aide">Visiting Nurse / Aide</option>
+                </select>
+              </div>
+            )}
+
+            {/* Add Family Member Button */}
+            <button
+              type="button"
+              onClick={onOpenFamilyModal}
+              className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors whitespace-nowrap"
+            >
+              <UserPlus className="w-3.5 h-3.5 text-slate-600" />
+              <span>+ Member</span>
+            </button>
 
             {/* Primary Action Button */}
             <button
               type="button"
               onClick={onOpenMedicineModal}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-teal-600 hover:bg-teal-700 active:bg-teal-800 rounded-lg shadow-xs transition-colors whitespace-nowrap"
+              className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-white bg-teal-600 hover:bg-teal-700 active:bg-teal-800 rounded-lg shadow-xs transition-colors whitespace-nowrap"
             >
               <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-              <span>Register Medicine</span>
+              <span>+ Medicine</span>
             </button>
           </div>
         </div>

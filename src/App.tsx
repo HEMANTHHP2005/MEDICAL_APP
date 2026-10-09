@@ -9,11 +9,13 @@ import { RefillPlanningView } from './components/refills/RefillPlanningView';
 import { FamilyMembersView } from './components/family/FamilyMembersView';
 import { HistoryAuditView } from './components/history/HistoryAuditView';
 import { MedicineRegistrationModal } from './components/medicines/MedicineRegistrationModal';
+import { FamilyMemberModal } from './components/family/FamilyMemberModal';
 import { Database, ShieldCheck, CheckCircle } from 'lucide-react';
 
 function MediHomeApp() {
   const [currentTab, setCurrentTab] = useState<NavigationTab>('dashboard');
   const [isMedicineModalOpen, setIsMedicineModalOpen] = useState(false);
+  const [isFamilyModalOpen, setIsFamilyModalOpen] = useState(false);
   const [doseStatusFilter, setDoseStatusFilter] = useState<string>('all');
   const [doseMemberFilter, setDoseMemberFilter] = useState<string>('all');
   const [refillTargetMedicineId, setRefillTargetMedicineId] = useState<string | undefined>(undefined);
@@ -43,6 +45,7 @@ function MediHomeApp() {
           setCurrentTab(tab);
         }}
         onOpenMedicineModal={() => setIsMedicineModalOpen(true)}
+        onOpenFamilyModal={() => setIsFamilyModalOpen(true)}
       />
 
       {/* Main Content Viewport */}
@@ -53,6 +56,8 @@ function MediHomeApp() {
             onFilterDosesByStatus={(status) => handleNavigateToTodayDoses(status, 'all')}
             onFilterDosesByMember={(memberId) => handleNavigateToTodayDoses('all', memberId)}
             onOpenRefillModal={handlePlanRefill}
+            onOpenFamilyModal={() => setIsFamilyModalOpen(true)}
+            onOpenMedicineModal={() => setIsMedicineModalOpen(true)}
           />
         )}
 
@@ -127,6 +132,12 @@ function MediHomeApp() {
       <MedicineRegistrationModal
         isOpen={isMedicineModalOpen}
         onClose={() => setIsMedicineModalOpen(false)}
+      />
+
+      {/* Global Family Member Modal */}
+      <FamilyMemberModal
+        isOpen={isFamilyModalOpen}
+        onClose={() => setIsFamilyModalOpen(false)}
       />
     </div>
   );

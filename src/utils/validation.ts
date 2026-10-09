@@ -87,12 +87,13 @@ export function validateFamilyMember(data: FamilyMemberFormData): ValidationResu
     }
   }
 
-  if (!data.emergencyContact?.name || data.emergencyContact.name.trim().length < 2) {
-    errors.emergencyContactName = 'Emergency contact name is required';
-  }
-
-  if (!data.emergencyContact?.phone || data.emergencyContact.phone.trim().length < 5) {
-    errors.emergencyContactPhone = 'Emergency contact telephone number is required';
+  if (data.emergencyContact?.name || data.emergencyContact?.phone) {
+    if (!data.emergencyContact?.name || data.emergencyContact.name.trim().length < 2) {
+      errors.emergencyContactName = 'Emergency contact name must be at least 2 characters';
+    }
+    if (!data.emergencyContact?.phone || data.emergencyContact.phone.trim().length < 5) {
+      errors.emergencyContactPhone = 'Emergency contact telephone number must be at least 5 digits';
+    }
   }
 
   return {

@@ -4,7 +4,7 @@ import { StatusBadge } from '../common/StatusBadge';
 import { formatTime24to12, formatFoodRelation } from '../../utils/formatters';
 import { calculateDailyBurnRate, calculateDaysOfSupply } from '../../utils/calculations';
 import { EmptyState } from '../common/EmptyState';
-import { Pill, Plus, Search, Calendar, Package, AlertCircle } from 'lucide-react';
+import { Pill, Plus, Search, Calendar, Package, AlertCircle, Trash2 } from 'lucide-react';
 
 interface MedicinesViewProps {
   onOpenRegisterModal: () => void;
@@ -15,7 +15,7 @@ export const MedicinesView: React.FC<MedicinesViewProps> = ({
   onOpenRegisterModal,
   onNavigateToStock
 }) => {
-  const { medicines, familyMembers } = useMediHome();
+  const { medicines, familyMembers, deleteMedicine } = useMediHome();
   const [selectedMember, setSelectedMember] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
@@ -205,13 +205,27 @@ export const MedicinesView: React.FC<MedicinesViewProps> = ({
                   <div className="text-slate-400 text-[11px] font-mono">
                     Rx: {med.pharmacyName || 'Local Pharmacy'}
                   </div>
-                  <button
-                    type="button"
-                    onClick={onNavigateToStock}
-                    className="text-teal-600 hover:text-teal-700 font-semibold"
-                  >
-                    View in Stock Register →
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => onNavigateToStock()}
+                      className="text-teal-600 hover:text-teal-700 font-semibold"
+                    >
+                      View in Stock →
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (window.confirm(`Remove prescription "${med.name} ${med.strength}"? This will also remove scheduled doses.`)) {
+                          deleteMedicine(med.id);
+                        }
+                      }}
+                      className="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 transition-colors"
+                      title="Remove Prescription"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
               </div>
             );

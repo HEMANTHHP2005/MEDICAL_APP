@@ -12,7 +12,8 @@ import {
   Building,
   HeartHandshake,
   Pill,
-  Edit
+  Edit,
+  Trash2
 } from 'lucide-react';
 
 interface FamilyMembersViewProps {
@@ -20,7 +21,7 @@ interface FamilyMembersViewProps {
 }
 
 export const FamilyMembersView: React.FC<FamilyMembersViewProps> = ({ onNavigateToMedicines }) => {
-  const { familyMembers, medicines } = useMediHome();
+  const { familyMembers, medicines, deleteFamilyMember } = useMediHome();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<FamilyMember | null>(null);
@@ -108,14 +109,29 @@ export const FamilyMembersView: React.FC<FamilyMembersViewProps> = ({ onNavigate
                       </div>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => handleOpenEdit(member)}
-                      className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
-                      title="Edit Profile"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEdit(member)}
+                        className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+                        title="Edit Profile"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (window.confirm(`Remove ${member.fullName} from household? This will also remove their scheduled prescriptions.`)) {
+                            deleteFamilyMember(member.id);
+                          }
+                        }}
+                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                        title="Remove Member"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
 
                   {/* Allergy Alert */}
@@ -129,20 +145,22 @@ export const FamilyMembersView: React.FC<FamilyMembersViewProps> = ({ onNavigate
                     </div>
                   )}
 
-                  {/* Emergency Contact */}
-                  <div className="p-3 rounded-lg bg-slate-50 border border-slate-100 text-xs space-y-1">
-                    <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                      <HeartHandshake className="w-3 h-3 text-rose-600" />
-                      <span>Emergency Contact</span>
+                  {/* Emergency Contact if provided */}
+                  {member.emergencyContact && (
+                    <div className="p-3 rounded-lg bg-slate-50 border border-slate-100 text-xs space-y-1">
+                      <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                        <HeartHandshake className="w-3 h-3 text-rose-600" />
+                        <span>Emergency Contact</span>
+                      </div>
+                      <div className="font-semibold text-slate-800">
+                        {member.emergencyContact.name} ({member.emergencyContact.relationship})
+                      </div>
+                      <div className="flex items-center gap-1 text-slate-600 font-mono">
+                        <Phone className="w-3 h-3 text-slate-400" />
+                        <span>{member.emergencyContact.phone}</span>
+                      </div>
                     </div>
-                    <div className="font-semibold text-slate-800">
-                      {member.emergencyContact.name} ({member.emergencyContact.relationship})
-                    </div>
-                    <div className="flex items-center gap-1 text-slate-600 font-mono">
-                      <Phone className="w-3 h-3 text-slate-400" />
-                      <span>{member.emergencyContact.phone}</span>
-                    </div>
-                  </div>
+                  )}
 
                   {/* Primary Doctor if available */}
                   {member.primaryDoctor && (

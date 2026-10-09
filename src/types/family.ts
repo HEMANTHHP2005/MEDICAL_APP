@@ -17,7 +17,7 @@ export interface FamilyMember {
     phone: string;
     clinic: string;
   };
-  emergencyContact: {
+  emergencyContact?: {
     name: string;
     phone: string;
     relationship: string;

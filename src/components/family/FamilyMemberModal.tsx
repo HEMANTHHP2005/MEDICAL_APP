@@ -42,9 +42,9 @@ export const FamilyMemberModal: React.FC<FamilyMemberModalProps> = ({
       setDocName(memberToEdit.primaryDoctor?.name || '');
       setDocPhone(memberToEdit.primaryDoctor?.phone || '');
       setDocClinic(memberToEdit.primaryDoctor?.clinic || '');
-      setEmName(memberToEdit.emergencyContact.name);
-      setEmPhone(memberToEdit.emergencyContact.phone);
-      setEmRel(memberToEdit.emergencyContact.relationship);
+      setEmName(memberToEdit.emergencyContact?.name || '');
+      setEmPhone(memberToEdit.emergencyContact?.phone || '');
+      setEmRel(memberToEdit.emergencyContact?.relationship || 'Spouse');
       setNotes(memberToEdit.notes || '');
       setAvatarColor(memberToEdit.avatarColor);
     } else {
@@ -84,11 +84,11 @@ export const FamilyMemberModal: React.FC<FamilyMemberModalProps> = ({
         phone: docPhone.trim(),
         clinic: docClinic.trim()
       } : undefined,
-      emergencyContact: {
-        name: emName.trim(),
-        phone: emPhone.trim(),
-        relationship: emRel.trim()
-      },
+      emergencyContact: (emName.trim() || emPhone.trim()) ? {
+        name: emName.trim() || 'Emergency Contact',
+        phone: emPhone.trim() || 'Not specified',
+        relationship: emRel.trim() || 'Family'
+      } : undefined,
       notes: notes.trim() || undefined,
       avatarColor
     };
@@ -217,17 +217,16 @@ export const FamilyMemberModal: React.FC<FamilyMemberModalProps> = ({
         <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-2.5">
           <h4 className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
             <HeartHandshake className="w-3.5 h-3.5 text-rose-600" />
-            <span>Emergency Contact Information</span>
+            <span>Emergency Contact Information (Optional)</span>
           </h4>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
             <div>
               <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                Contact Name <span className="text-rose-500">*</span>
+                Contact Name (Optional)
               </label>
               <input
                 type="text"
-                required
                 value={emName}
                 onChange={(e) => setEmName(e.target.value)}
                 placeholder="David Pendelton"
@@ -238,11 +237,10 @@ export const FamilyMemberModal: React.FC<FamilyMemberModalProps> = ({
 
             <div>
               <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                Phone Number <span className="text-rose-500">*</span>
+                Phone Number (Optional)
               </label>
               <input
                 type="tel"
-                required
                 value={emPhone}
                 onChange={(e) => setEmPhone(e.target.value)}
                 placeholder="(555) 301-4422"

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useMemo, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useMemo, useEffect, ReactNode } from 'react';
 import { FamilyMember, FamilyMemberFormData } from '../types/family';
 import { Medicine, MedicineRegistrationFormData } from '../types/medicine';
 import { DoseRecord, DoseStatus, DoseCorrectionRecord } from '../types/dose';
@@ -16,6 +16,23 @@ import {
 } from '../data/mockData';
 import { calculateDailyBurnRate, calculateDaysOfSupply, calculateRunoutDate, getStockHealthStatus } from '../utils/calculations';
 
+function loadFromStorage<T>(key: string, fallback: T): T {
+  try {
+    const item = localStorage.getItem(key);
+    return item ? JSON.parse(item) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function saveToStorage<T>(key: string, value: T): void {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // Ignore storage quota errors
+  }
+}
+
 interface MediHomeContextType {
   // State
   familyMembers: FamilyMember[];
@@ -30,6 +47,13 @@ interface MediHomeContextType {
   stockSummaries: StockItemSummary[];
   activeCaregiver: string;
   setActiveCaregiver: (name: string) => void;
+
+  // Household data management
+  isDemoMode: boolean;
+  startFreshHousehold: () => void;
+  loadDemoData: () => void;
+  deleteFamilyMember: (id: string) => void;
+  deleteMedicine: (id: string) => void;
 
   // Dose Operations (with clinical integrity & separate reminder acknowledgment)
   recordDoseStatus: (
@@ -78,14 +102,51 @@ interface MediHomeContextType {
 const MediHomeContext = createContext<MediHomeContextType | null>(null);
 
 export function MediHomeProvider({ children }: { children: ReactNode }) {
-  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>(initialFamilyMembers);
-  const [medicines, setMedicines] = useState<Medicine[]>(initialMedicines);
-  const [doses, setDoses] = useState<DoseRecord[]>(initialDoses);
-  const [stockBatches, setStockBatches] = useState<StockBatch[]>(initialBatches);
-  const [stockTransactions, setStockTransactions] = useState<StockTransaction[]>(initialTransactions);
-  const [refillOrders, setRefillOrders] = useState<RefillPurchaseOrder[]>(initialRefillOrders);
-  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>(initialAuditLogs);
-  const [activeCaregiver, setActiveCaregiver] = useState<string>('David Pendelton (Primary Caregiver)');
+  const [isDemoMode, setIsDemoMode] = useState<boolean>(() => loadFromStorage('medihome_v1_is_demo', true));
+  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>(() => loadFromStorage('medihome_v1_members', initialFamilyMembers));
+  const [medicines, setMedicines] = useState<Medicine[]>(() => loadFromStorage('medihome_v1_medicines', initialMedicines));
+  const [doses, setDoses] = useState<DoseRecord[]>(() => loadFromStorage('medihome_v1_doses', initialDoses));
+  const [stockBatches, setStockBatches] = useState<StockBatch[]>(() => loadFromStorage('medihome_v1_batches', initialBatches));
+  const [stockTransactions, setStockTransactions] = useState<StockTransaction[]>(() => loadFromStorage('medihome_v1_tx', initialTransactions));
+  const [refillOrders, setRefillOrders] = useState<RefillPurchaseOrder[]>(() => loadFromStorage('medihome_v1_refills', initialRefillOrders));
+  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>(() => loadFromStorage('medihome_v1_logs', initialAuditLogs));
+  const [activeCaregiver, setActiveCaregiver] = useState<string>(() => {
+    const members = loadFromStorage('medihome_v1_members', initialFamilyMembers);
+    return members.length > 0 ? `${members[0].fullName} (${members[0].relationship})` : 'Household Caregiver';
+  });
+
+  // Save changes to localStorage for normal continuous usage
+  useEffect(() => {
+    saveToStorage('medihome_v1_members', familyMembers);
+  }, [familyMembers]);
+
+  useEffect(() => {
+    saveToStorage('medihome_v1_medicines', medicines);
+  }, [medicines]);
+
+  useEffect(() => {
+    saveToStorage('medihome_v1_doses', doses);
+  }, [doses]);
+
+  useEffect(() => {
+    saveToStorage('medihome_v1_batches', stockBatches);
+  }, [stockBatches]);
+
+  useEffect(() => {
+    saveToStorage('medihome_v1_tx', stockTransactions);
+  }, [stockTransactions]);
+
+  useEffect(() => {
+    saveToStorage('medihome_v1_refills', refillOrders);
+  }, [refillOrders]);
+
+  useEffect(() => {
+    saveToStorage('medihome_v1_logs', auditLogs);
+  }, [auditLogs]);
+
+  useEffect(() => {
+    saveToStorage('medihome_v1_is_demo', isDemoMode);
+  }, [isDemoMode]);
 
   // Dynamic stock item summaries with calculated burn rate and runout dates
   const stockSummaries = useMemo<StockItemSummary[]>(() => {
@@ -691,6 +752,9 @@ export function MediHomeProvider({ children }: { children: ReactNode }) {
     };
 
     setFamilyMembers(prev => [...prev, newMember]);
+    if (familyMembers.length === 0) {
+      setActiveCaregiver(`${newMember.fullName} (${newMember.relationship})`);
+    }
 
     setAuditLogs(prev => [{
       id: `aud-fam-${Date.now()}`,
@@ -710,6 +774,87 @@ export function MediHomeProvider({ children }: { children: ReactNode }) {
     setFamilyMembers(prev => prev.map(m => m.id === id ? { ...m, ...data, updatedAt: nowIso } : m));
   };
 
+  const deleteFamilyMember = (id: string) => {
+    const member = familyMembers.find(f => f.id === id);
+    if (!member) return;
+
+    setFamilyMembers(prev => prev.filter(f => f.id !== id));
+    setMedicines(prev => prev.filter(m => m.familyMemberId !== id));
+    setDoses(prev => prev.filter(d => d.familyMemberId !== id));
+    setRefillOrders(prev => prev.filter(r => r.familyMemberId !== id));
+
+    const nowIso = new Date().toISOString();
+    setAuditLogs(prev => [{
+      id: `aud-del-fam-${Date.now()}`,
+      timestamp: nowIso,
+      category: 'medicine_updated',
+      actor: activeCaregiver,
+      entityType: 'family',
+      entityId: id,
+      title: 'Family Member Profile Removed',
+      details: `Removed profile for ${member.fullName} (${member.relationship}) and archived their regimens.`,
+      previousValue: member.fullName
+    }, ...prev]);
+  };
+
+  const deleteMedicine = (id: string) => {
+    const med = medicines.find(m => m.id === id);
+    if (!med) return;
+
+    setMedicines(prev => prev.filter(m => m.id !== id));
+    setDoses(prev => prev.filter(d => d.medicineId !== id));
+    setStockBatches(prev => prev.filter(b => b.medicineId !== id));
+    setRefillOrders(prev => prev.filter(r => r.medicineId !== id));
+
+    const nowIso = new Date().toISOString();
+    setAuditLogs(prev => [{
+      id: `aud-del-med-${Date.now()}`,
+      timestamp: nowIso,
+      category: 'medicine_updated',
+      actor: activeCaregiver,
+      entityType: 'medicine',
+      entityId: id,
+      title: 'Prescription Removed',
+      details: `Removed prescription ${med.name} (${med.strength}) from active register.`,
+      previousValue: med.name
+    }, ...prev]);
+  };
+
+  const startFreshHousehold = () => {
+    setIsDemoMode(false);
+    setFamilyMembers([]);
+    setMedicines([]);
+    setDoses([]);
+    setStockBatches([]);
+    setStockTransactions([]);
+    setRefillOrders([]);
+    setActiveCaregiver('Household Caregiver');
+
+    const nowIso = new Date().toISOString();
+    setAuditLogs([{
+      id: `aud-init-${Date.now()}`,
+      timestamp: nowIso,
+      category: 'medicine_updated',
+      actor: 'Household Caregiver',
+      entityType: 'family',
+      entityId: 'household-root',
+      title: 'New Household Started',
+      details: 'Sample demo data cleared. Your household is ready for adding your family members and prescriptions.'
+    }]);
+  };
+
+  const loadDemoData = () => {
+    setIsDemoMode(true);
+    setFamilyMembers(initialFamilyMembers);
+    setMedicines(initialMedicines);
+    setDoses(initialDoses);
+    setStockBatches(initialBatches);
+    setStockTransactions(initialTransactions);
+    setRefillOrders(initialRefillOrders);
+    setAuditLogs(initialAuditLogs);
+    setActiveCaregiver('David Pendelton (Primary Caregiver)');
+  };
+
   const value = {
     familyMembers,
     medicines,
@@ -721,6 +866,11 @@ export function MediHomeProvider({ children }: { children: ReactNode }) {
     stockSummaries,
     activeCaregiver,
     setActiveCaregiver,
+    isDemoMode,
+    startFreshHousehold,
+    loadDemoData,
+    deleteFamilyMember,
+    deleteMedicine,
     recordDoseStatus,
     correctDoseStatus,
     toggleReminderAcknowledgment,
